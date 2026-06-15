@@ -1,0 +1,10 @@
+{
+  "name": "money-lens",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-web.mjs",
+    "preview": "node scripts/preview-web.mjs"
+  }
+}

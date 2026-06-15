@@ -1,0 +1,433 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		100000000000000000000101 /* MoneyLensApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000001 /* MoneyLensApp.swift */; };
+		100000000000000000000102 /* SpendCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000002 /* SpendCategory.swift */; };
+		100000000000000000000103 /* TransactionSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000003 /* TransactionSource.swift */; };
+		100000000000000000000104 /* SpendingModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000004 /* SpendingModels.swift */; };
+		100000000000000000000105 /* SpendingAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000005 /* SpendingAnalyzer.swift */; };
+		100000000000000000000106 /* SampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000006 /* SampleData.swift */; };
+		100000000000000000000107 /* SpendingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000007 /* SpendingStore.swift */; };
+		100000000000000000000108 /* AppFormatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000008 /* AppFormatters.swift */; };
+		100000000000000000000109 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000009 /* ContentView.swift */; };
+		100000000000000000000110 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000010 /* DashboardView.swift */; };
+		100000000000000000000111 /* TransactionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000011 /* TransactionsView.swift */; };
+		100000000000000000000112 /* TransactionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000012 /* TransactionDetailView.swift */; };
+		100000000000000000000113 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000013 /* InsightsView.swift */; };
+		100000000000000000000114 /* SourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000014 /* SourcesView.swift */; };
+		100000000000000000000115 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000015 /* Assets.xcassets */; };
+		100000000000000000000116 /* ReceiptImportParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000017 /* ReceiptImportParser.swift */; };
+		100000000000000000000117 /* ReceiptTextRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000018 /* ReceiptTextRecognizer.swift */; };
+		100000000000000000000118 /* ImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000019 /* ImportView.swift */; };
+		100000000000000000000119 /* MoneyLensTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000020 /* MoneyLensTheme.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		100000000000000000000001 /* MoneyLensApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoneyLensApp.swift; sourceTree = "<group>"; };
+		100000000000000000000002 /* SpendCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpendCategory.swift; sourceTree = "<group>"; };
+		100000000000000000000003 /* TransactionSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionSource.swift; sourceTree = "<group>"; };
+		100000000000000000000004 /* SpendingModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpendingModels.swift; sourceTree = "<group>"; };
+		100000000000000000000005 /* SpendingAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpendingAnalyzer.swift; sourceTree = "<group>"; };
+		100000000000000000000006 /* SampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleData.swift; sourceTree = "<group>"; };
+		100000000000000000000007 /* SpendingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpendingStore.swift; sourceTree = "<group>"; };
+		100000000000000000000008 /* AppFormatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFormatters.swift; sourceTree = "<group>"; };
+		100000000000000000000009 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		100000000000000000000010 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		100000000000000000000011 /* TransactionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionsView.swift; sourceTree = "<group>"; };
+		100000000000000000000012 /* TransactionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionDetailView.swift; sourceTree = "<group>"; };
+		100000000000000000000013 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
+		100000000000000000000014 /* SourcesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourcesView.swift; sourceTree = "<group>"; };
+		100000000000000000000015 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		100000000000000000000016 /* MoneyLens.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MoneyLens.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		100000000000000000000017 /* ReceiptImportParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptImportParser.swift; sourceTree = "<group>"; };
+		100000000000000000000018 /* ReceiptTextRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptTextRecognizer.swift; sourceTree = "<group>"; };
+		100000000000000000000019 /* ImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportView.swift; sourceTree = "<group>"; };
+		100000000000000000000020 /* MoneyLensTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoneyLensTheme.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		100000000000000000000201 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		100000000000000000000301 = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000302 /* MoneyLens */,
+				100000000000000000000303 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		100000000000000000000302 /* MoneyLens */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000304 /* App */,
+				100000000000000000000305 /* Domain */,
+				100000000000000000000306 /* Services */,
+				100000000000000000000307 /* Views */,
+				100000000000000000000308 /* Resources */,
+			);
+			path = MoneyLens;
+			sourceTree = "<group>";
+		};
+		100000000000000000000303 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000016 /* MoneyLens.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		100000000000000000000304 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000001 /* MoneyLensApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		100000000000000000000305 /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000002 /* SpendCategory.swift */,
+				100000000000000000000003 /* TransactionSource.swift */,
+				100000000000000000000004 /* SpendingModels.swift */,
+				100000000000000000000005 /* SpendingAnalyzer.swift */,
+				100000000000000000000006 /* SampleData.swift */,
+				100000000000000000000017 /* ReceiptImportParser.swift */,
+			);
+			path = Domain;
+			sourceTree = "<group>";
+		};
+		100000000000000000000306 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000007 /* SpendingStore.swift */,
+				100000000000000000000008 /* AppFormatters.swift */,
+				100000000000000000000018 /* ReceiptTextRecognizer.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		100000000000000000000307 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000020 /* MoneyLensTheme.swift */,
+				100000000000000000000009 /* ContentView.swift */,
+				100000000000000000000010 /* DashboardView.swift */,
+				100000000000000000000011 /* TransactionsView.swift */,
+				100000000000000000000012 /* TransactionDetailView.swift */,
+				100000000000000000000019 /* ImportView.swift */,
+				100000000000000000000013 /* InsightsView.swift */,
+				100000000000000000000014 /* SourcesView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		100000000000000000000308 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000015 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		100000000000000000000401 /* MoneyLens */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 100000000000000000000501 /* Build configuration list for PBXNativeTarget "MoneyLens" */;
+			buildPhases = (
+				100000000000000000000601 /* Sources */,
+				100000000000000000000201 /* Frameworks */,
+				100000000000000000000602 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MoneyLens;
+			productName = MoneyLens;
+			productReference = 100000000000000000000016 /* MoneyLens.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		100000000000000000000701 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					100000000000000000000401 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = 100000000000000000000502 /* Build configuration list for PBXProject "MoneyLens" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 100000000000000000000301;
+			productRefGroup = 100000000000000000000303 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				100000000000000000000401 /* MoneyLens */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		100000000000000000000602 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000115 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		100000000000000000000601 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000101 /* MoneyLensApp.swift in Sources */,
+				100000000000000000000102 /* SpendCategory.swift in Sources */,
+				100000000000000000000103 /* TransactionSource.swift in Sources */,
+				100000000000000000000104 /* SpendingModels.swift in Sources */,
+				100000000000000000000105 /* SpendingAnalyzer.swift in Sources */,
+				100000000000000000000106 /* SampleData.swift in Sources */,
+				100000000000000000000116 /* ReceiptImportParser.swift in Sources */,
+				100000000000000000000107 /* SpendingStore.swift in Sources */,
+				100000000000000000000108 /* AppFormatters.swift in Sources */,
+				100000000000000000000117 /* ReceiptTextRecognizer.swift in Sources */,
+				100000000000000000000119 /* MoneyLensTheme.swift in Sources */,
+				100000000000000000000109 /* ContentView.swift in Sources */,
+				100000000000000000000110 /* DashboardView.swift in Sources */,
+				100000000000000000000111 /* TransactionsView.swift in Sources */,
+				100000000000000000000112 /* TransactionDetailView.swift in Sources */,
+				100000000000000000000118 /* ImportView.swift in Sources */,
+				100000000000000000000113 /* InsightsView.swift in Sources */,
+				100000000000000000000114 /* SourcesView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		100000000000000000000801 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		100000000000000000000802 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		100000000000000000000803 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = MoneyLens;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moneylens.prototype;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		100000000000000000000804 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = MoneyLens;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moneylens.prototype;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		100000000000000000000501 /* Build configuration list for PBXNativeTarget "MoneyLens" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				100000000000000000000803 /* Debug */,
+				100000000000000000000804 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		100000000000000000000502 /* Build configuration list for PBXProject "MoneyLens" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				100000000000000000000801 /* Debug */,
+				100000000000000000000802 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 100000000000000000000701 /* Project object */;
+}
