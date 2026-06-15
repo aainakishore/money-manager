@@ -108,27 +108,100 @@ function fmt(amount) {
   return "₹" + Math.round(amount).toLocaleString("en-IN");
 }
 
-function parseReceipt(text) {
-  const merchants = ["Blinkit", "Amazon", "Swiggy", "Zomato", "Myntra", "Nykaa", "CRED", "Paytm", "Google Pay"];
-  const merchant = merchants.find((name) => text.toLowerCase().includes(name.toLowerCase())) ?? "Unknown";
-  const totalMatch = text.match(/(?:order total|total paid|amount paid|grand total|total)[:\s]+(?:rs\.?|₹|inr)?\s*([0-9,]+)/i);
-  const itemRegex = /^(.+?)\s+(?:x(\d+)\s+)?(?:rs\.?|₹|inr)\s*([0-9,]+)/gim;
-  const blocked = ["total", "paid", "order", "invoice", "tax", "gst", "delivery", "discount", "coupon", merchant.toLowerCase()];
-  const items = [];
-  let match;
+// ── Format detection ──────────────────────────────────────────────────────────
 
-  while ((match = itemRegex.exec(text)) !== null) {
-    const name = match[1].trim();
-    const quantity = Number(match[2] ?? 1);
-    const unitPrice = Number(match[3].replaceAll(",", ""));
-    if (name.length > 3 && !blocked.some((word) => name.toLowerCase().startsWith(word))) {
-      items.push({ name, price: unitPrice * quantity, quantity, category: inferCategory(name) });
+function detectFormat(text) {
+  const lower = text.toLowerCase();
+  if (
+    lower.includes("upi transaction id") ||
+    lower.includes("upi lite") ||
+    lower.includes("google transaction id") ||
+    lower.includes("phonepay")
+  ) return "upi";
+  if (
+    (lower.includes("tax invoice") || lower.includes("invoice no")) &&
+    (lower.includes("hsn") || lower.includes("invoice value") || lower.includes("sgst"))
+  ) return "pdf";
+  return "order";
+}
+
+// ── Main parser entry point ───────────────────────────────────────────────────
+
+function parseReceipt(text) {
+  const format = detectFormat(text);
+  if (format === "upi") return parseUPIPayment(text);
+  if (format === "pdf") return parsePDFInvoice(text);
+  return parseOrderSummary(text);
+}
+
+// ── UPI payment screenshots (Google Pay, PhonePe, etc.) ──────────────────────
+
+function parseUPIPayment(text) {
+  const payeeMatch = text.match(/^To:?\s+([^\n₹\d]+)/im);
+  const payee = payeeMatch ? payeeMatch[1].trim() : "Unknown";
+
+  const amountMatch = text.match(/₹\s*([0-9,]+(?:\.[0-9]{1,2})?)/);
+  if (!amountMatch) return null;
+  const amount = Number(amountMatch[1].replaceAll(",", ""));
+
+  const dateMatch = text.match(/(\d{1,2}\s+\w+\s+\d{4})/);
+  const category = inferCategory(payee);
+  const meta = categoryMeta(category);
+
+  return {
+    id: crypto.randomUUID(),
+    merchant: payee,
+    amount,
+    date: dateMatch ? dateMatch[1] : "Today",
+    category,
+    color: meta.color,
+    icon: meta.icon,
+    items: [{ name: `Payment to ${payee}`, price: amount }]
+  };
+}
+
+// ── PDF tax invoices (Blinkit / Zomato GST invoices) ─────────────────────────
+
+function parsePDFInvoice(text) {
+  const merchants = ["Blinkit", "Amazon", "Swiggy", "Zomato", "Myntra", "Nykaa"];
+  const merchant =
+    merchants.find((m) => text.toLowerCase().includes(m.toLowerCase())) ?? "Unknown";
+
+  let amount = 0;
+  const invMatch = text.match(/invoice\s+value\s+([\d,]+(?:\.\d{1,2})?)/i);
+  if (invMatch) {
+    const base = Number(invMatch[1].replaceAll(",", ""));
+    const afterInv = text.slice(
+      text.indexOf(invMatch[0]) + invMatch[0].length,
+      text.indexOf(invMatch[0]) + 200
+    );
+    const standMatch = afterInv.match(/^\s*([\d,]+)\s*$/m);
+    amount = standMatch ? Number(standMatch[1].replaceAll(",", "")) : base;
+  }
+  if (!amount) {
+    const totMatch = text.match(/\bTotal\s+([\d,]+(?:\.\d{1,2})?)/i);
+    if (totMatch) amount = Number(totMatch[1].replaceAll(",", ""));
+  }
+
+  const lines = text.split("\n");
+  const blocked = ["total", "invoice", "tax", "gst", "handling", "delivery", "discount", "amount in words", "cgst", "sgst"];
+  const items = [];
+
+  for (const line of lines) {
+    const t = line.trim();
+    if (!t || t.length < 5) continue;
+    if (blocked.some((b) => t.toLowerCase().startsWith(b))) continue;
+    const m = t.match(/^\d+\.\s+(.+?)\s+(?:\d+\s+NOS\s+)?(?:\d{4,}\s+)?[\d.]+(?:\s+[\d.]+){3,}\s+(\d+)$/);
+    if (m) {
+      const name = m[1].trim();
+      const price = Number(m[2]);
+      if (name.length >= 3 && price > 0 && price < (amount || 99999)) {
+        items.push({ name, price, quantity: 1, category: inferCategory(name) });
+      }
     }
   }
 
-  const amount = totalMatch
-    ? Number(totalMatch[1].replaceAll(",", ""))
-    : items.reduce((sum, item) => sum + item.price, 0);
+  if (!amount) amount = items.reduce((s, i) => s + i.price, 0);
   const category = dominantCategory(items) ?? inferCategory(merchant);
   const meta = categoryMeta(category);
 
@@ -144,17 +217,82 @@ function parseReceipt(text) {
   };
 }
 
-function inferCategory(text) {
-  const value = text.toLowerCase();
-  const rules = [
-    ["Food", ["swiggy", "zomato", "pizza", "burger", "coffee", "paneer", "meal"]],
-    ["Groceries", ["blinkit", "milk", "bread", "egg", "rice", "salt", "grocery", "yogurt", "vegetable"]],
-    ["Shopping", ["amazon", "myntra", "shirt", "t-shirt", "shoe", "bag"]],
-    ["Bills", ["cred", "bill", "payment", "recharge"]],
-    ["Beauty", ["serum", "skin", "shampoo", "cream", "sunscreen"]],
-    ["Supplements", ["protein", "vitamin", "magnesium", "omega", "creatine", "almond"]]
+// ── Standard order summaries (Swiggy OCR, Zomato email, Amazon email) ────────
+
+function parseOrderSummary(text) {
+  const merchants = ["Blinkit", "Amazon", "Swiggy", "Zomato", "Myntra", "Nykaa", "CRED", "Paytm", "Google Pay", "Zepto"];
+  let merchant = merchants.find((m) => text.toLowerCase().includes(m.toLowerCase()));
+
+  if (!merchant) {
+    const lower = text.toLowerCase();
+    if (lower.includes("luckybite") || lower.includes("swiggy one") || lower.includes("bill total")) merchant = "Swiggy";
+    else if (lower.includes("eternal") || lower.includes("getoff") || lower.includes("zomato gold")) merchant = "Zomato";
+  }
+  merchant = merchant ?? "Unknown";
+
+  const totalMatch = text.match(
+    /(?:bill\s+total|grand\s+total|order\s+total|total\s+paid|amount\s+paid|net\s+payable|total)[:\s]+(?:rs\.?|₹|inr)?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i
+  );
+
+  const itemRegex = /^(.+?)\s+(?:x\s*(\d+)\s+)?(?:rs\.?|₹|inr)\s*([0-9,]+(?:\.[0-9]{1,2})?)/gim;
+  const blocked = [
+    "total", "paid", "order", "invoice", "tax", "gst", "delivery",
+    "discount", "coupon", "platform", "packaging", "restaurant packaging",
+    "handling", "membership", "express", "surge", merchant.toLowerCase()
   ];
-  return rules.find(([, words]) => words.some((word) => value.includes(word)))?.[0] ?? "Shopping";
+  const items = [];
+  let match;
+
+  while ((match = itemRegex.exec(text)) !== null) {
+    let name = match[1].trim().replace(/\s+\d+\s*$/, "");
+    const quantity = Number(match[2] ?? 1);
+    const unitPrice = Number(match[3].replaceAll(",", ""));
+    if (name.length > 3 && !blocked.some((w) => name.toLowerCase().startsWith(w))) {
+      items.push({ name, price: unitPrice * quantity, quantity, category: inferCategory(name) });
+    }
+  }
+
+  const amount = totalMatch
+    ? Number(totalMatch[1].replaceAll(",", ""))
+    : items.reduce((s, i) => s + i.price, 0);
+
+  const category = dominantCategory(items) ?? inferCategory(merchant);
+  const meta = categoryMeta(category);
+
+  return {
+    id: crypto.randomUUID(),
+    merchant,
+    amount,
+    date: "Today",
+    category,
+    color: meta.color,
+    icon: meta.icon,
+    items
+  };
+}
+
+// ── Category helpers ──────────────────────────────────────────────────────────
+
+function inferCategory(text) {
+  const v = text.toLowerCase();
+  const rules = [
+    ["Food",          ["swiggy", "zomato", "biryani", "pizza", "burger", "coffee", "shawarma",
+                       "restaurant", "meal", "paneer", "roti", "naan", "tikka", "grill", "cafe"]],
+    ["Groceries",     ["blinkit", "zepto", "milk", "bread", "egg", "rice", "salt", "grocery",
+                       "atta", "dal", "yogurt", "mango", "coconut", "litchi", "lychee", "potato",
+                       "broccoli", "carrot", "banana", "lemon", "cabbage", "cucumber", "capsicum",
+                       "mustard", "vinegar", "makhana"]],
+    ["Beauty",        ["serum", "skin", "shampoo", "cream", "sunscreen", "salon", "academy",
+                       "haircut", "soap", "dettol", "handwash", "face wash", "moisturiser"]],
+    ["Supplements",   ["protein", "vitamin", "magnesium", "omega", "creatine", "almond",
+                       "carbamide", "moringa"]],
+    ["Shopping",      ["amazon", "myntra", "shirt", "t-shirt", "shoe", "bag", "jeans", "dress",
+                       "tape", "lighter", "measuring"]],
+    ["Bills",         ["cred", "bill", "credit card", "electricity", "recharge", "broadband"]],
+    ["Transport",     ["uber", "ola", "metro", "fuel", "petrol", "rapido"]],
+    ["Subscriptions", ["netflix", "spotify", "prime", "subscription", "hotstar"]]
+  ];
+  return rules.find(([, words]) => words.some((w) => v.includes(w)))?.[0] ?? "Shopping";
 }
 
 function dominantCategory(items) {
@@ -167,15 +305,19 @@ function dominantCategory(items) {
 
 function categoryMeta(category) {
   const map = {
-    Bills: { color: R, icon: "▧" },
-    Shopping: { color: V, icon: "◧" },
-    Groceries: { color: T, icon: "◫" },
-    Food: { color: O, icon: "◍" },
-    Beauty: { color: "#EC4899", icon: "✦" },
-    Supplements: { color: "#34D399", icon: "✚" }
+    Bills:         { color: "#EF4444", icon: "▧" },
+    Shopping:      { color: "#7C5CF0", icon: "◧" },
+    Groceries:     { color: "#00C9A7", icon: "◫" },
+    Food:          { color: "#F97316", icon: "◍" },
+    Beauty:        { color: "#EC4899", icon: "✦" },
+    Supplements:   { color: "#34D399", icon: "✚" },
+    Transport:     { color: "#06B6D4", icon: "◌" },
+    Subscriptions: { color: "#8B5CF6", icon: "◉" }
   };
-  return map[category] ?? { color: T, icon: "◌" };
+  return map[category] ?? { color: "#00C9A7", icon: "◌" };
 }
+
+// ── UI rendering ──────────────────────────────────────────────────────────────
 
 function totalsByCategory() {
   const totals = new Map();
@@ -246,10 +388,10 @@ function transactionRow(transaction) {
 }
 
 function dashboard() {
-  const total = state.transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+  const total = state.transactions.reduce((sum, t) => sum + t.amount, 0);
   const categories = totalsByCategory();
   const merchants = totalsByMerchant();
-  const maxMerchant = Math.max(...merchants.map((merchant) => merchant.value), 1);
+  const maxMerchant = Math.max(...merchants.map((m) => m.value), 1);
   return `
     <div class="eyebrow">June 2026 spending</div>
     <div class="hero-row">
@@ -276,10 +418,10 @@ function dashboard() {
     </section>
     <section class="card">
       <div class="section-label">Top merchants</div>
-      ${merchants.map((merchant) => `
+      ${merchants.map((m) => `
         <div class="merchant-bar">
-          <div class="bar-head"><span>${merchant.name}</span><strong>${fmt(merchant.value)}</strong></div>
-          <div class="bar-track"><div class="bar-fill" style="width:${(merchant.value / maxMerchant) * 100}%;background:${merchant.color}"></div></div>
+          <div class="bar-head"><span>${m.name}</span><strong>${fmt(m.value)}</strong></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(m.value / maxMerchant) * 100}%;background:${m.color}"></div></div>
         </div>`).join("")}
     </section>
     <section class="card">
@@ -434,226 +576,3 @@ if ("serviceWorker" in navigator) {
 }
 
 render();
-// ─────────────────────────────────────────────────────────────────────────────
-// REPLACE the existing parseReceipt, inferCategory, dominantCategory,
-// and categoryMeta functions in app.js with everything below.
-// The rest of app.js (state, render, bindEvents, etc.) stays the same.
-// ─────────────────────────────────────────────────────────────────────────────
-
-// ── Format detection ─────────────────────────────────────────────────────────
-
-function detectFormat(text) {
-  const lower = text.toLowerCase();
-  if (
-    lower.includes("upi transaction id") ||
-    lower.includes("upi lite") ||
-    lower.includes("google transaction id") ||
-    lower.includes("phonepay")
-  ) return "upi";
-  if (
-    (lower.includes("tax invoice") || lower.includes("invoice no")) &&
-    (lower.includes("hsn") || lower.includes("invoice value") || lower.includes("sgst"))
-  ) return "pdf";
-  return "order";
-}
-
-// ── Main entry point ─────────────────────────────────────────────────────────
-
-function parseReceipt(text) {
-  const format = detectFormat(text);
-  if (format === "upi")  return parseUPIPayment(text);
-  if (format === "pdf")  return parsePDFInvoice(text);
-  return parseOrderSummary(text);
-}
-
-// ── UPI payment screenshots (Google Pay, PhonePe, etc.) ──────────────────────
-
-function parseUPIPayment(text) {
-  // "To Varad Salon And Academy" or "To: Name"
-  const payeeMatch = text.match(/^To:?\s+([^\n₹\d]+)/im);
-  const payee = payeeMatch ? payeeMatch[1].trim() : "Unknown";
-
-  // Standalone ₹100 or ₹100.00
-  const amountMatch = text.match(/₹\s*([0-9,]+(?:\.[0-9]{1,2})?)/);
-  if (!amountMatch) return null;
-  const amount = Number(amountMatch[1].replaceAll(",", ""));
-
-  const dateMatch = text.match(/(\d{1,2}\s+\w+\s+\d{4})/);
-  const category = inferCategory(payee);
-  const meta = categoryMeta(category);
-
-  return {
-    id: crypto.randomUUID(),
-    merchant: payee,
-    amount,
-    date: dateMatch ? dateMatch[1] : "Today",
-    category,
-    color: meta.color,
-    icon: meta.icon,
-    items: [{ name: `Payment to ${payee}`, price: amount }]
-  };
-}
-
-// ── PDF tax invoices (Blinkit / Zomato GST invoices) ─────────────────────────
-
-function parsePDFInvoice(text) {
-  const merchants = ["Blinkit", "Amazon", "Swiggy", "Zomato", "Myntra", "Nykaa"];
-  const merchant =
-    merchants.find((m) => text.toLowerCase().includes(m.toLowerCase())) ?? "Unknown";
-
-  // Total: "Invoice Value 1,544" then standalone "1,551" two lines later
-  let amount = 0;
-  const invMatch = text.match(/invoice\s+value\s+([\d,]+(?:\.\d{1,2})?)/i);
-  if (invMatch) {
-    const base = Number(invMatch[1].replaceAll(",", ""));
-    // Look for a standalone total (with handling fee) a few characters later
-    const afterInv = text.slice(text.indexOf(invMatch[0]) + invMatch[0].length, text.indexOf(invMatch[0]) + 200);
-    const standMatch = afterInv.match(/^\s*([\d,]+)\s*$/m);
-    amount = standMatch ? Number(standMatch[1].replaceAll(",", "")) : base;
-  }
-  if (!amount) {
-    const totMatch = text.match(/\bTotal\s+([\d,]+(?:\.\d{1,2})?)/i);
-    if (totMatch) amount = Number(totMatch[1].replaceAll(",", ""));
-  }
-
-  // Items: numbered rows from GST table — last integer on the line is the INR total
-  const lines = text.split("\n");
-  const blocked = ["total", "invoice", "tax", "gst", "handling", "delivery", "discount", "amount in words", "cgst", "sgst"];
-  const items = [];
-
-  for (const line of lines) {
-    const t = line.trim();
-    if (!t || t.length < 5) continue;
-    if (blocked.some((b) => t.toLowerCase().startsWith(b))) continue;
-
-    // Numbered item line: "1. Item name ... 35" or "1. Item name ... 1,551"
-    const m = t.match(/^\d+\.\s+(.+?)\s+(?:\d+\s+NOS\s+)?(?:\d{4,}\s+)?[\d.]+(?:\s+[\d.]+){3,}\s+(\d+)$/);
-    if (m) {
-      const name = m[1].trim();
-      const price = Number(m[2]);
-      if (name.length >= 3 && price > 0 && price < (amount || 99999)) {
-        items.push({ name, price, quantity: 1, category: inferCategory(name) });
-      }
-    }
-  }
-
-  if (!amount) amount = items.reduce((s, i) => s + i.price, 0);
-  const category = dominantCategory(items) ?? inferCategory(merchant);
-  const meta = categoryMeta(category);
-
-  return {
-    id: crypto.randomUUID(),
-    merchant,
-    amount,
-    date: "Today",
-    category,
-    color: meta.color,
-    icon: meta.icon,
-    items
-  };
-}
-
-// ── Standard order summaries (Swiggy OCR, Zomato email, Amazon email) ────────
-
-function parseOrderSummary(text) {
-  const merchants = ["Blinkit", "Amazon", "Swiggy", "Zomato", "Myntra", "Nykaa", "CRED", "Paytm", "Google Pay", "Zepto"];
-  let merchant = merchants.find((m) => text.toLowerCase().includes(m.toLowerCase()));
-
-  // Platform-context hints for restaurant orders (Swiggy OCR shows restaurant name, not "Swiggy")
-  if (!merchant) {
-    const lower = text.toLowerCase();
-    if (lower.includes("luckybite") || lower.includes("swiggy one") || lower.includes("bill total")) merchant = "Swiggy";
-    else if (lower.includes("eternal") || lower.includes("getoff") || lower.includes("zomato gold")) merchant = "Zomato";
-  }
-  merchant = merchant ?? "Unknown";
-
-  // Extended total keywords, decimal-aware
-  const totalMatch = text.match(
-    /(?:bill\s+total|grand\s+total|order\s+total|total\s+paid|amount\s+paid|net\s+payable|total)[:\s]+(?:rs\.?|₹|inr)?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i
-  );
-
-  // Item regex — handles both "x2 ₹95" and "1 ₹265 ₹265" (Zomato) formats, captures decimals
-  const itemRegex = /^(.+?)\s+(?:x\s*(\d+)\s+)?(?:rs\.?|₹|inr)\s*([0-9,]+(?:\.[0-9]{1,2})?)/gim;
-  const blocked = [
-    "total", "paid", "order", "invoice", "tax", "gst", "delivery",
-    "discount", "coupon", "platform", "packaging", "restaurant packaging",
-    "handling", "membership", "express", "surge", merchant.toLowerCase()
-  ];
-  const items = [];
-  let match;
-
-  while ((match = itemRegex.exec(text)) !== null) {
-    // Strip trailing lone quantity digit that Zomato format leaves: "Lamb Shawarma 1"
-    let name = match[1].trim().replace(/\s+\d+\s*$/, "");
-    const quantity = Number(match[2] ?? 1);
-    const unitPrice = Number(match[3].replaceAll(",", ""));
-    if (name.length > 3 && !blocked.some((w) => name.toLowerCase().startsWith(w))) {
-      items.push({ name, price: unitPrice * quantity, quantity, category: inferCategory(name) });
-    }
-  }
-
-  const amount = totalMatch
-    ? Number(totalMatch[1].replaceAll(",", ""))
-    : items.reduce((s, i) => s + i.price, 0);
-
-  const category = dominantCategory(items) ?? inferCategory(merchant);
-  const meta = categoryMeta(category);
-
-  return {
-    id: crypto.randomUUID(),
-    merchant,
-    amount,
-    date: "Today",
-    category,
-    color: meta.color,
-    icon: meta.icon,
-    items
-  };
-}
-
-// ── Category helpers ─────────────────────────────────────────────────────────
-
-function inferCategory(text) {
-  const v = text.toLowerCase();
-  const rules = [
-    ["Food",         ["swiggy", "zomato", "biryani", "pizza", "burger", "coffee", "shawarma",
-                      "restaurant", "meal", "paneer", "roti", "naan", "tikka", "grill", "cafe"]],
-    ["Groceries",    ["blinkit", "zepto", "milk", "bread", "egg", "rice", "salt", "grocery",
-                      "atta", "dal", "yogurt", "mango", "coconut", "litchi", "lychee", "potato",
-                      "broccoli", "carrot", "banana", "lemon", "cabbage", "cucumber", "capsicum",
-                      "mustard", "vinegar", "makhana"]],
-    ["Beauty",       ["serum", "skin", "shampoo", "cream", "sunscreen", "salon", "academy",
-                      "haircut", "soap", "kojic", "glutathione", "arbutin", "dettol", "handwash",
-                      "face wash", "moisturiser"]],
-    ["Supplements",  ["protein", "vitamin", "magnesium", "omega", "creatine", "almond",
-                      "carbamide", "moringa"]],
-    ["Shopping",     ["amazon", "myntra", "shirt", "t-shirt", "shoe", "bag", "jeans", "dress",
-                      "tape", "lighter", "measuring"]],
-    ["Bills",        ["cred", "bill", "credit card", "electricity", "recharge", "broadband"]],
-    ["Transport",    ["uber", "ola", "metro", "fuel", "petrol", "rapido"]],
-    ["Subscriptions",["netflix", "spotify", "prime", "subscription", "hotstar"]]
-  ];
-  return rules.find(([, words]) => words.some((w) => v.includes(w)))?.[0] ?? "Shopping";
-}
-
-function dominantCategory(items) {
-  const totals = new Map();
-  for (const item of items) {
-    totals.set(item.category, (totals.get(item.category) ?? 0) + item.price);
-  }
-  return [...totals.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
-}
-
-function categoryMeta(category) {
-  const map = {
-    Bills:         { color: "#EF4444", icon: "▧" },
-    Shopping:      { color: "#7C5CF0", icon: "◧" },
-    Groceries:     { color: "#00C9A7", icon: "◫" },
-    Food:          { color: "#F97316", icon: "◍" },
-    Beauty:        { color: "#EC4899", icon: "✦" },
-    Supplements:   { color: "#34D399", icon: "✚" },
-    Transport:     { color: "#06B6D4", icon: "◌" },
-    Subscriptions: { color: "#8B5CF6", icon: "◉" }
-  };
-  return map[category] ?? { color: "#00C9A7", icon: "◌" };
-}
