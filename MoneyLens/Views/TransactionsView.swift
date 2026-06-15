@@ -24,6 +24,9 @@ struct TransactionsView: View {
                                 }
                                 .buttonStyle(.plain)
                             }
+                            .onDelete { offsets in
+                                store.delete(at: offsets)
+                            }
                         }
                     }
                 }

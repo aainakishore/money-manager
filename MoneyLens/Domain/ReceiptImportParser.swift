@@ -170,7 +170,9 @@ public struct ReceiptImportParser {
                 let name = String(trimmed[nameRange]).trimmingCharacters(in: .whitespaces)
                 let price = Decimal(string: String(trimmed[priceRange])) ?? .zero
                 if name.count >= 3 && price > 0 && price < invoiceTotal {
-                    items.append(LineItem(name: name, quantity: 1, unitPrice: price, category: inferCategory(from: name)))
+                    let (category, confidence) = inferCategoryWithConfidence(from: name)
+                    items.append(LineItem(name: name, quantity: 1, unitPrice: price,
+                                         category: category, categoryConfidence: confidence))
                 }
             }
         }
@@ -191,8 +193,6 @@ public struct ReceiptImportParser {
         let merchant = detectMerchantFromContext(in: text) ?? lines.first ?? "Unknown merchant"
         let paymentApp = detectPaymentApp(in: text)
         var items = parseOrderItems(from: lines)
-
-        // Amazon-email fallback: one product per order, price in "Item(s) Subtotal"
         if items.isEmpty, merchant == "Amazon" {
             let pattern = #"item(?:s)?\s+subtotal[:\s]+(?:₹|rs\.?|inr)?\s*([\d,]+(?:\.\d{1,2})?)"#
             if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
@@ -273,7 +273,9 @@ public struct ReceiptImportParser {
             let name = cleanedItemName(from: line)
             guard name.count >= 3 else { return nil }
 
-            return LineItem(name: name, quantity: quantity, unitPrice: amount, category: inferCategory(from: name))
+            let (category, confidence) = inferCategoryWithConfidence(from: name)
+            return LineItem(name: name, quantity: quantity, unitPrice: amount,
+                            category: category, categoryConfidence: confidence)
         }
     }
 
@@ -438,27 +440,82 @@ private func preJoinMultiLineItems(in lines: [String]) -> [String] {
     }
 
     private func inferCategory(from text: String) -> SpendCategory {
+        inferCategoryWithConfidence(from: text).category
+    }
+
+    private func inferCategoryWithConfidence(from text: String) -> (category: SpendCategory, confidence: CategoryConfidence) {
+        // Layer 1: learned rules (user-taught, always wins)
+        if let learned = CategoryLearner.shared.category(for: text) {
+            return (learned, .high)
+        }
+
         let lower = text.lowercased()
         let rules: [(SpendCategory, [String])] = [
-            (.foodDelivery, ["swiggy", "zomato", "biryani", "pizza", "burger", "coffee", "shawarma",
-                             "restaurant", "meal", "paneer", "roti", "naan", "tikka", "grill", "cafe"]),
-            (.groceries,   ["blinkit", "zepto", "milk", "bread", "egg", "rice", "salt", "grocery",
-                             "atta", "dal", "yogurt", "vegetable", "mango", "coconut", "litchi",
-                             "lychee", "potato", "broccoli", "carrot", "banana", "lemon", "cabbage",
-                             "cucumber", "capsicum", "makhana", "moringa", "mustard", "vinegar"]),
-            (.beauty,      ["serum", "face", "skin", "shampoo", "conditioner", "makeup", "sunscreen",
-                             "cream", "nykaa", "soap", "kojic", "glutathione", "arbutin", "salon",
-                             "academy", "haircut", "dettol", "handwash"]),
-            (.supplements, ["protein", "vitamin", "magnesium", "omega", "supplement", "creatine",
-                             "almond", "carbamide", "moringa powder"]),
-            (.clothing,    ["shirt", "t-shirt", "jeans", "dress", "shoes", "myntra", "tshirt"]),
-            (.bills,       ["bill", "credit card", "electricity", "recharge", "broadband", "cred"]),
-            (.transport,   ["uber", "ola", "metro", "fuel", "petrol", "rapido"]),
-            (.subscriptions, ["netflix", "spotify", "prime", "subscription", "hotstar", "youtube"])
+            (.subscriptions, ["netflix", "spotify", "prime video", "disney", "hotstar", "apple tv",
+                              "subscription", "youtube premium", "zee5"]),
+            (.transport,     ["uber", "ola", "metro", "fuel", "petrol", "diesel", "rapido", "cab",
+                              "auto", "taxi", "toll", "parking"]),
+            (.bills,         ["cred", "credit card", "electricity", "broadband", "wifi", "recharge",
+                              "postpaid", "prepaid", "emi", "insurance", "rent"]),
+            (.beauty,        ["serum", "toner", "moisturiser", "moisturizer", "sunscreen", "spf",
+                              "face wash", "cleanser", "shampoo", "conditioner", "hair mask", "hair oil",
+                              "body wash", "soap", "scrub", "lip balm", "lipstick", "foundation",
+                              "mascara", "eyeliner", "kajal", "nail polish", "perfume", "deodorant",
+                              "salon", "academy", "haircut", "kojic", "glutathione", "arbutin",
+                              "niacinamide", "retinol", "dettol", "handwash", "sanitiser"]),
+            (.supplements,   ["protein", "whey", "casein", "creatine", "pre-workout", "bcaa", "amino",
+                              "vitamin", "multivitamin", "omega", "fish oil", "magnesium", "zinc",
+                              "calcium", "collagen", "probiotic", "moringa", "ashwagandha",
+                              "carbamide", "almond", "chia seed", "flaxseed", "makhana"]),
+            (.foodDelivery,  ["swiggy", "zomato", "biryani", "pizza", "burger", "sandwich", "wrap",
+                              "shawarma", "kebab", "tikka", "grill", "pasta", "noodle", "maggi",
+                              "coffee", "chai", "tea", "juice", "smoothie", "milkshake", "lassi",
+                              "paneer", "roti", "naan", "paratha", "dosa", "idli", "samosa",
+                              "restaurant", "cafe", "bakery", "meal", "thali", "snack",
+                              "chocolate", "biscuit", "cookie", "chips", "popcorn", "candy",
+                              "ice cream", "cake", "pastry", "dessert"]),
+            (.groceries,     ["blinkit", "zepto", "bigbasket", "jiomart", "milk", "curd", "yogurt",
+                              "butter", "ghee", "cheese", "bread", "egg", "atta", "flour", "rice",
+                              "dal", "pulses", "lentil", "salt", "sugar", "oil", "mustard", "vinegar",
+                              "sauce", "ketchup", "pickle", "jam", "honey", "onion", "potato",
+                              "tomato", "garlic", "ginger", "carrot", "broccoli", "cabbage",
+                              "capsicum", "cucumber", "spinach", "peas", "mango", "banana", "apple",
+                              "orange", "lemon", "coconut", "litchi", "lychee", "grapes",
+                              "watermelon", "papaya", "masala", "spice", "turmeric", "cumin",
+                              "coriander", "pepper", "oats", "cornflakes", "muesli", "poha",
+                              "detergent", "dishwash", "tissue", "toilet paper", "garbage bag"]),
+            (.clothing,      ["shirt", "t-shirt", "tshirt", "top", "blouse", "kurta", "jeans",
+                              "trouser", "pant", "shorts", "skirt", "dress", "saree", "shoe",
+                              "sandal", "slipper", "sneaker", "boot", "myntra"]),
+            (.shopping,      ["amazon", "flipkart", "nykaa", "bag", "wallet", "belt", "watch",
+                              "jewellery", "earphone", "headphone", "charger", "cable", "mobile",
+                              "laptop", "tablet", "keyboard", "mouse", "book", "stationery",
+                              "pen", "notebook", "tape", "lighter", "measuring"])
         ]
 
-        return rules.first { _, keywords in
-            keywords.contains { lower.contains($0) }
-        }?.0 ?? .shopping
+        // Layer 2a: keyword match
+        if let match = rules.first(where: { _, keywords in keywords.contains { lower.contains($0) } }) {
+            return (match.0, .medium)
+        }
+
+        // Layer 2b: word-shape heuristics
+        if lower.range(of: #"\b(lip |lash |brow |blush|contour|primer|concealer|highlighter|bronzer)\b"#, options: .regularExpression) != nil {
+            return (.beauty, .medium)
+        }
+        if lower.range(of: #"\b(wash|clean|care|groom|hygien|lotion|gel|foam|spray|powder|wipe|pad|tampon|razor|blade)\b"#, options: .regularExpression) != nil {
+            return (.beauty, .medium)
+        }
+        if lower.range(of: #"\b(capsule|tablet|syrup|drops|supplement|health|wellness|ayurved|herbal)\b"#, options: .regularExpression) != nil {
+            return (.supplements, .medium)
+        }
+        if lower.range(of: #"\b(masala|pickle|papad|chutney|leaves|seeds?|nuts?|dry\s*fruit|roasted|organic)\b"#, options: .regularExpression) != nil {
+            return (.groceries, .medium)
+        }
+        if lower.range(of: #"\b(wear|cloth|fabric|linen|cotton|polyester|stitch|tailor)\b"#, options: .regularExpression) != nil {
+            return (.clothing, .medium)
+        }
+
+        // Layer 3: unknown — flag for user review
+        return (.shopping, .low)
     }
 }

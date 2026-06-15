@@ -6,6 +6,7 @@ public struct LineItem: Codable, Hashable, Identifiable {
     public var quantity: Int
     public var unitPrice: Decimal
     public var category: SpendCategory
+    public var categoryConfidence: CategoryConfidence
     public var sku: String?
 
     public init(
@@ -14,6 +15,7 @@ public struct LineItem: Codable, Hashable, Identifiable {
         quantity: Int,
         unitPrice: Decimal,
         category: SpendCategory,
+        categoryConfidence: CategoryConfidence = .medium,
         sku: String? = nil
     ) {
         self.id = id
@@ -21,6 +23,7 @@ public struct LineItem: Codable, Hashable, Identifiable {
         self.quantity = quantity
         self.unitPrice = unitPrice
         self.category = category
+        self.categoryConfidence = categoryConfidence
         self.sku = sku
     }
 
@@ -125,4 +128,10 @@ public struct PriceChangeInsight: Hashable, Identifiable {
         self.percentageChange = percentageChange
         self.latestDate = latestDate
     }
+}
+
+public enum CategoryConfidence: String, Codable {
+    case high    // learned rule or strong keyword match
+    case medium  // heuristic keyword list
+    case low     // no match — needs user review
 }

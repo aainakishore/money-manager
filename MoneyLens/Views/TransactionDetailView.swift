@@ -2,6 +2,13 @@ import SwiftUI
 
 struct TransactionDetailView: View {
     var transaction: SpendTransaction
+    @EnvironmentObject private var store: SpendingStore
+    @State private var editedCategory: SpendCategory
+
+    init(transaction: SpendTransaction) {
+        self.transaction = transaction
+        _editedCategory = State(initialValue: transaction.category)
+    }
 
     var body: some View {
         MoneyLensScreen {
@@ -56,7 +63,26 @@ struct TransactionDetailView: View {
 
                 MoneyLensCard {
                     VStack(alignment: .leading, spacing: 8) {
-                        MoneyLensSectionLabel(title: "Captured from")
+                        MoneyLensSectionLabel(title: "Transaction details")
+
+                        HStack {
+                            Text("Category")
+                                .font(.system(size: 11))
+                                .foregroundStyle(MoneyLensTheme.mutedText)
+                            Spacer()
+                            Picker("Category", selection: $editedCategory) {
+                                ForEach(SpendCategory.allCases) { cat in
+                                    Text(cat.title).tag(cat)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .tint(MoneyLensTheme.teal)
+                            .font(.system(size: 11, weight: .semibold))
+                        }
+                        .onChange(of: editedCategory) { _, newValue in
+                            store.updateCategory(id: transaction.id, category: newValue)
+                        }
+
                         DetailLine(title: "Source app", value: transaction.sourceApp)
                         DetailLine(title: "Payment app", value: transaction.paymentApp ?? "Unknown")
                         DetailLine(title: "Import method", value: transaction.source.title)

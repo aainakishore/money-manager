@@ -70,6 +70,24 @@ final class SpendingStore: ObservableObject {
         transactions.remove(atOffsets: offsets)
     }
 
+    func delete(_ transaction: SpendTransaction) {
+        transactions.removeAll { $0.id == transaction.id }
+    }
+
+    func updateCategory(id: UUID, category: SpendCategory) {
+        if let index = transactions.firstIndex(where: { $0.id == id }) {
+            transactions[index].category = category
+        }
+    }
+
+    func isDuplicate(_ candidate: SpendTransaction) -> Bool {
+        transactions.contains { existing in
+            existing.merchant == candidate.merchant &&
+            existing.amount == candidate.amount &&
+            abs(existing.date.timeIntervalSince(candidate.date)) < 86_400
+        }
+    }
+
     func resetToSampleData() {
         transactions = SampleData.transactions.sorted { $0.date > $1.date }
     }
