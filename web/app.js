@@ -292,13 +292,28 @@ function importScreen() {
 }
 
 function parsedCard(parsed) {
+  const uncertain = parsed.items.filter(i => i.confidence === "low");
+  const reviewBtn = uncertain.length
+    ? `<button class="secondary" id="reviewCategories" style="width:100%;margin-top:6px">
+         Review ${uncertain.length} uncertain categor${uncertain.length > 1 ? "ies" : "y"} ↗
+       </button>`
+    : "";
+
   return `
     <section class="card">
       <div class="parsed-head">
         <div><strong>${parsed.merchant}</strong><span>${parsed.items.length} items found</span></div>
         <div class="parsed-total">${fmt(parsed.amount)}</div>
       </div>
-      ${parsed.items.slice(0, 5).map((item) => `<div class="item-row"><span>${item.name}</span><strong>${fmt(item.price)}</strong></div>`).join("")}
+      ${parsed.items.slice(0, 5).map(item => `
+        <div class="item-row">
+          <span style="display:flex;align-items:center;gap:5px">
+            ${item.confidence === "low" ? '<span style="color:#f97316;font-size:9px">?</span>' : ""}
+            ${item.name}
+          </span>
+          <strong>${fmt(item.price)}</strong>
+        </div>`).join("")}
+      ${reviewBtn}
       <button class="secondary saved" id="saveOrder">Save order</button>
     </section>`;
 }
@@ -360,53 +375,119 @@ function render() {
   bindEvents();
 }
 
+// function bindEvents() {
+//   document.querySelectorAll("[data-tab]").forEach((button) => {
+//     button.addEventListener("click", () => {
+//       state.tab = button.dataset.tab;
+//       render();
+//     });
+//   });
+
+//   const receiptText = document.querySelector("#receiptText");
+//   if (receiptText) {
+//     receiptText.addEventListener("input", (event) => {
+//       state.receiptText = event.target.value;
+//       state.parsed = null;
+//     });
+//   }
+
+//   document.querySelector("#parseText")?.addEventListener("click", () => {
+//     state.receiptText = document.querySelector("#receiptText").value;
+//     state.parsed = parseReceipt(state.receiptText);
+//     render();
+//   });
+
+//   document.querySelector("#resetText")?.addEventListener("click", () => {
+//     state.receiptText = sample;
+//     state.parsed = null;
+//     render();
+//   });
+
+//   document.querySelector("#saveOrder")?.addEventListener("click", () => {
+//     if (!state.parsed) return;
+//     state.transactions.unshift(state.parsed);
+//     saveTransactions();
+//     state.parsed = null;
+//     state.tab = "dashboard";
+//     render();
+//   });
+
+//   document.querySelector("#imageInput")?.addEventListener("change", async (event) => {
+//     const file = event.target.files?.[0];
+//     if (!file) return;
+//     state.receiptText = `Screenshot selected: ${file.name}
+
+// Browser-only OCR is not bundled yet. For now, copy visible order text from the app or use iPhone Live Text on the screenshot, then paste it here.
+
+// ${sample}`;
+//     state.parsed = null;
+//     render();
+//   });
+// }
+
 function bindEvents() {
-  document.querySelectorAll("[data-tab]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.tab = button.dataset.tab;
-      render();
+  document.querySelector("#reviewCategories")?.addEventListener("click", () => {
+  showCategoryReviewModal(state.parsed);
+});
+
+function showCategoryReviewModal(parsed) {
+  const uncertain = parsed.items.filter(i => i.confidence === "low");
+  const categories = ["Groceries","Food","Shopping","Beauty","Supplements","Bills","Transport","Subscriptions"];
+
+  const modal = document.createElement("div");
+  modal.id = "catModal";
+  modal.style.cssText = `
+    position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1000;
+    display:flex;align-items:flex-end;justify-content:center`;
+  modal.innerHTML = `
+    <div style="background:#0e1220;border-radius:18px 18px 0 0;padding:20px 16px 32px;width:min(100%,430px);max-height:80vh;overflow:auto">
+      <p style="font-size:11px;color:rgba(240,242,245,.5);margin:0 0 14px">
+        These items weren't recognised. Pick a category — your choices are remembered.
+      </p>
+      ${uncertain.map((item, idx) => `
+        <div style="margin-bottom:14px">
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px">${item.name}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px">
+            ${categories.map(cat => `
+              <button data-item="${idx}" data-cat="${cat}"
+                style="font-size:10px;font-weight:600;padding:4px 9px;border-radius:6px;border:.5px solid rgba(255,255,255,.15);background:${item.category===cat?'var(--teal)':'rgba(255,255,255,.07)'};color:${item.category===cat?'#080b14':'#f0f2f5'};cursor:pointer">
+                ${cat}
+              </button>`).join("")}
+          </div>
+        </div>`).join("")}
+      <button id="doneReview" style="width:100%;background:var(--teal);color:#080b14;border:0;border-radius:8px;padding:10px;font-weight:700;font-size:13px;margin-top:8px">
+        Done
+      </button>
+    </div>`;
+
+  document.body.appendChild(modal);
+
+  // Track selections
+  const selections = Object.fromEntries(uncertain.map((item, i) => [i, item.category]));
+
+  modal.querySelectorAll("[data-item]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const idx = Number(btn.dataset.item);
+      const cat = btn.dataset.cat;
+      selections[idx] = cat;
+      // Update button styles
+      modal.querySelectorAll(`[data-item="${idx}"]`).forEach(b => {
+        b.style.background = b.dataset.cat === cat ? "var(--teal)" : "rgba(255,255,255,.07)";
+        b.style.color = b.dataset.cat === cat ? "#080b14" : "#f0f2f5";
+      });
     });
   });
 
-  const receiptText = document.querySelector("#receiptText");
-  if (receiptText) {
-    receiptText.addEventListener("input", (event) => {
-      state.receiptText = event.target.value;
-      state.parsed = null;
+  document.querySelector("#doneReview").addEventListener("click", () => {
+    uncertain.forEach((item, idx) => {
+      item.category = selections[idx];
+      item.confidence = "high";
+      // Extract a short keyword from item name to save as a learned rule
+      const keyword = item.name.toLowerCase().split(/\s+/).slice(0, 3).join(" ");
+      saveLearnedRule(keyword, selections[idx]);
     });
-  }
-
-  document.querySelector("#parseText")?.addEventListener("click", () => {
-    state.receiptText = document.querySelector("#receiptText").value;
-    state.parsed = parseReceipt(state.receiptText);
-    render();
-  });
-
-  document.querySelector("#resetText")?.addEventListener("click", () => {
-    state.receiptText = sample;
-    state.parsed = null;
-    render();
-  });
-
-  document.querySelector("#saveOrder")?.addEventListener("click", () => {
-    if (!state.parsed) return;
-    state.transactions.unshift(state.parsed);
-    saveTransactions();
-    state.parsed = null;
-    state.tab = "dashboard";
-    render();
-  });
-
-  document.querySelector("#imageInput")?.addEventListener("change", async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    state.receiptText = `Screenshot selected: ${file.name}
-
-Browser-only OCR is not bundled yet. For now, copy visible order text from the app or use iPhone Live Text on the screenshot, then paste it here.
-
-${sample}`;
-    state.parsed = null;
-    render();
+    document.body.removeChild(modal);
+    render(); // re-render to reflect updated categories
   });
 }
 
@@ -416,7 +497,7 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-render();
+
 
 // ── UPI payment screenshots (Google Pay, PhonePe, etc.) ──────────────────────
 
@@ -482,7 +563,9 @@ function parsePDFInvoice(text) {
       const name = m[1].trim();
       const price = Number(m[2]);
       if (name.length >= 3 && price > 0 && price < (amount || 99999)) {
-        items.push({ name, price, quantity: 1, category: inferCategory(name) });
+        // Inside item-building loops:
+        const { category, confidence } = inferCategoryWithConfidence(name);
+        items.push({ name, price: unitPrice * quantity, quantity, category, confidence });
       }
     }
   }
@@ -538,7 +621,9 @@ function parseOrderSummary(text) {
     const quantity = Number(match[2] ?? 1);
     const unitPrice = Number(match[3].replaceAll(",", ""));
     if (name.length > 3 && !blocked.some((w) => name.toLowerCase().startsWith(w))) {
-      items.push({ name, price: unitPrice * quantity, quantity, category: inferCategory(name) });
+      // Inside item-building loops:
+      const { category, confidence } = inferCategoryWithConfidence(name);
+      items.push({ name, price: unitPrice * quantity, quantity, category, confidence });
     }
   }
 
@@ -563,88 +648,54 @@ function parseOrderSummary(text) {
 
 // ── Category helpers ─────────────────────────────────────────────────────────
 
-function inferCategory(text, learnedRules = inferCategory._learned) {
-  // Check user-learned mappings first (exact keyword matches stored from unrecognized items)
-  for (const [keyword, category] of learnedRules) {
-    if (text.toLowerCase().includes(keyword)) return category;
-  }
+function saveLearnedRule(keyword, category) {
+  const rules = inferCategory._learned;
+  rules.set(keyword.toLowerCase().trim(), category);
+  localStorage.setItem("moneylens.learned_categories", JSON.stringify([...rules]));
+}
+
+// Returns { category: string, confidence: "high" | "medium" | "low" }
+function inferCategoryWithConfidence(text) {
   const v = text.toLowerCase();
 
-  // Keyword rules — first match wins, ordered by specificity
+  // Layer 1: learned rules (user-taught)
+  for (const [keyword, category] of inferCategory._learned) {
+    if (v.includes(keyword)) return { category, confidence: "high" };
+  }
+
+  // Layer 2a: keyword rules (existing list)
   const rules = [
-    ["Subscriptions", ["netflix", "spotify", "prime video", "disney", "hotstar", "apple tv",
-                       "subscription", "youtube premium", "zee5"]],
-    ["Transport",     ["uber", "ola", "metro", "fuel", "petrol", "diesel", "rapido", "cab",
-                       "auto", "taxi", "bus pass", "toll", "parking"]],
-    ["Bills",         ["cred", "credit card", "electricity", "broadband", "wifi", "recharge",
-                       "postpaid", "prepaid", "emi", "insurance", "rent"]],
-    ["Beauty",        ["serum", "toner", "moisturiser", "moisturizer", "sunscreen", "spf",
-                       "face wash", "cleanser", "shampoo", "conditioner", "hair mask", "hair oil",
-                       "body wash", "soap", "scrub", "lip balm", "lipstick", "foundation",
-                       "mascara", "eyeliner", "kajal", "nail polish", "perfume", "deodorant",
-                       "salon", "academy", "haircut", "waxing", "threading",
-                       "kojic", "glutathione", "arbutin", "niacinamide", "retinol",
-                       "dettol", "handwash", "sanitiser", "sanitizer"]],
-    ["Supplements",   ["protein", "whey", "casein", "creatine", "pre-workout", "pre workout",
-                       "bcaa", "amino", "vitamin", "multivitamin", "omega", "fish oil",
-                       "magnesium", "zinc", "iron supplement", "calcium", "collagen",
-                       "probiotic", "moringa", "ashwagandha", "carbamide", "almond",
-                       "chia seed", "flaxseed", "makhana"]],
-    ["Food",          ["swiggy", "zomato", "biryani", "pizza", "burger", "sandwich", "wrap",
-                       "shawarma", "kebab", "tikka", "grill", "pasta", "noodle", "maggi",
-                       "coffee", "chai", "tea", "juice", "smoothie", "milkshake", "lassi",
-                       "paneer", "roti", "naan", "paratha", "dosa", "idli", "samosa",
-                       "restaurant", "cafe", "bakery", "meal", "thali", "snack",
-                       "chocolate", "biscuit", "cookie", "chips", "popcorn", "candy",
-                       "ice cream", "cake", "pastry", "dessert"]],
-    ["Groceries",     ["blinkit", "zepto", "bigbasket", "jiomart",
-                       "milk", "curd", "yogurt", "butter", "ghee", "cheese", "paneer",
-                       "bread", "egg", "atta", "flour", "rice", "dal", "pulses", "lentil",
-                       "salt", "sugar", "oil", "mustard", "vinegar", "sauce", "ketchup",
-                       "pickle", "jam", "honey", "grocery",
-                       "onion", "potato", "tomato", "garlic", "ginger", "carrot",
-                       "broccoli", "cabbage", "capsicum", "cucumber", "spinach", "peas",
-                       "mango", "banana", "apple", "orange", "lemon", "coconut",
-                       "litchi", "lychee", "grapes", "watermelon", "papaya",
-                       "masala", "spice", "turmeric", "cumin", "coriander", "pepper",
-                       "tea leaves", "coffee powder", "oats", "cornflakes", "muesli",
-                       "noodles", "pasta", "poha", "suji", "semolina",
-                       "detergent", "dishwash", "floor cleaner", "toilet cleaner",
-                       "tissue", "toilet paper", "garbage bag"]],
-    ["Shopping",      ["amazon", "myntra", "flipkart", "nykaa",
-                       "shirt", "t-shirt", "tshirt", "top", "blouse", "kurta",
-                       "jeans", "trouser", "pant", "shorts", "skirt", "dress", "saree",
-                       "shoe", "sandal", "slipper", "sneaker", "boot",
-                       "bag", "wallet", "belt", "watch", "jewellery",
-                       "earphone", "headphone", "charger", "cable", "mobile",
-                       "laptop", "tablet", "keyboard", "mouse",
-                       "book", "stationery", "pen", "notebook",
-                       "tape", "lighter", "measuring", "tool", "hardware"]]
+    ["Subscriptions", ["netflix","spotify","prime video","disney","hotstar","apple tv","subscription","youtube premium","zee5"]],
+    ["Transport",     ["uber","ola","metro","fuel","petrol","diesel","rapido","cab","auto","taxi","toll","parking"]],
+    ["Bills",         ["cred","credit card","electricity","broadband","wifi","recharge","postpaid","prepaid","emi","insurance","rent"]],
+    ["Beauty",        ["serum","toner","moisturiser","moisturizer","sunscreen","spf","face wash","cleanser","shampoo","conditioner","hair mask","hair oil","body wash","soap","scrub","lip balm","lipstick","foundation","mascara","eyeliner","kajal","nail polish","perfume","deodorant","salon","academy","haircut","waxing","threading","kojic","glutathione","arbutin","niacinamide","retinol","dettol","handwash","sanitiser","sanitizer"]],
+    ["Supplements",   ["protein","whey","casein","creatine","pre-workout","bcaa","amino","vitamin","multivitamin","omega","fish oil","magnesium","zinc","iron supplement","calcium","collagen","probiotic","moringa","ashwagandha","carbamide","almond","chia seed","flaxseed","makhana"]],
+    ["Food",          ["swiggy","zomato","biryani","pizza","burger","sandwich","wrap","shawarma","kebab","tikka","grill","pasta","noodle","maggi","coffee","chai","tea","juice","smoothie","milkshake","lassi","paneer","roti","naan","paratha","dosa","idli","samosa","restaurant","cafe","bakery","meal","thali","snack","chocolate","biscuit","cookie","chips","popcorn","candy","ice cream","cake","pastry","dessert"]],
+    ["Groceries",     ["blinkit","zepto","bigbasket","jiomart","milk","curd","yogurt","butter","ghee","cheese","bread","egg","atta","flour","rice","dal","pulses","lentil","salt","sugar","oil","mustard","vinegar","sauce","ketchup","pickle","jam","honey","onion","potato","tomato","garlic","ginger","carrot","broccoli","cabbage","capsicum","cucumber","spinach","peas","mango","banana","apple","orange","lemon","coconut","litchi","grapes","watermelon","papaya","masala","spice","turmeric","cumin","coriander","pepper","oats","cornflakes","muesli","poha","detergent","dishwash","tissue","toilet paper","garbage bag"]],
+    ["Shopping",      ["amazon","myntra","flipkart","nykaa","shirt","t-shirt","tshirt","top","blouse","kurta","jeans","trouser","pant","shorts","skirt","dress","saree","shoe","sandal","slipper","sneaker","boot","bag","wallet","belt","watch","jewellery","earphone","headphone","charger","cable","mobile","laptop","tablet","keyboard","mouse","book","stationery","pen","notebook"]]
   ];
+  const keywordMatch = rules.find(([, words]) => words.some(w => v.includes(w)));
+  if (keywordMatch) return { category: keywordMatch[0], confidence: "medium" };
 
-  // First pass: exact keyword match
-  const keywordMatch = rules.find(([, words]) => words.some((w) => v.includes(w)))?.[0];
-  if (keywordMatch) return keywordMatch;
+  // Layer 2b: word-shape heuristics (wider net, lower confidence)
+  if (/\b(lip |lash |brow |blush|contour|primer|concealer|highlighter|bronzer)\b/i.test(v))
+    return { category: "Beauty", confidence: "medium" };
+  if (/\b(wash|clean|care|groom|hygien|lotion|gel|foam|spray|powder|wipe|pad|tampon|razor|blade)\b/i.test(v))
+    return { category: "Beauty", confidence: "medium" };
+  if (/\b(capsule|tablet|syrup|drops|supplement|health|wellness|ayurved|herbal)\b/i.test(v))
+    return { category: "Supplements", confidence: "medium" };
+  if (/\b(masala|pickle|papad|chutney|syrup|leaves|seeds?|nuts?|dry\s*fruit|roasted|organic)\b/i.test(v))
+    return { category: "Groceries", confidence: "medium" };
+  if (/\b(wear|cloth|fabric|linen|cotton|polyester|stitch|tailor)\b/i.test(v))
+    return { category: "Shopping", confidence: "medium" };
 
-  // Second pass: heuristic signals for uncatalogued items
-  // Looks like a personal care / hygiene product
-  if (/\b(wash|clean|care|groom|hygien|lotion|gel|foam|spray|powder|wipe|pad|tampon|razor|blade)\b/i.test(v)) {
-    return "Beauty";
-  }
-  // Looks like a food ingredient or packaged food
-  if (/\b(masala|pickle|papad|chutney|syrup|extract|leaves|seeds?|nuts?|dry\s*fruit|roasted|organic|natural)\b/i.test(v)) {
-    return "Groceries";
-  }
-  // Looks like a health product
-  if (/\b(capsule|tablet|syrup|drops|supplement|health|wellness|ayurved|herbal)\b/i.test(v)) {
-    return "Supplements";
-  }
-  // Looks like apparel or accessories
-  if (/\b(wear|cloth|fabric|linen|cotton|polyester|stitch|tailor|fitting)\b/i.test(v)) {
-    return "Shopping";
-  }
+  // Layer 3: no match — mark for user review
+  return { category: "Shopping", confidence: "low" };
+}
 
-  return "Shopping";
+// Keep the old inferCategory as a simple wrapper for callers that don't need confidence
+function inferCategory(text) {
+  return inferCategoryWithConfidence(text).category;
 }
 
 // Drop-in helper — add once near the top of the improved-parsers section
@@ -687,3 +738,5 @@ function preJoinMultiLineItems(lines) {
   }
   return result;
 }
+
+render();
