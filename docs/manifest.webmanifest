@@ -2,7 +2,7 @@
   "name": "MoneyLens",
   "short_name": "MoneyLens",
   "description": "Itemized spending tracker for order receipts and screenshots.",
-  "start_url": "./",
+  "start_url": ".",
   "scope": ".",
   "display": "standalone",
   "background_color": "#080B14",

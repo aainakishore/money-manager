@@ -1,4 +1,4 @@
-const CACHE_NAME = "money-lens-v4";
+const CACHE_NAME = "money-lens-v5";
 const ASSETS = [
   "./",
   "./index.html",
