@@ -170,6 +170,7 @@ button {
   position: relative;
   width: 110px;
   height: 110px;
+  cursor: pointer;
 }
 
 .donut-label {
